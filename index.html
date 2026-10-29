@@ -1,0 +1,158 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Asistente de Estudio</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: #101827;
+      color: white;
+    }
+    main {
+      max-width: 720px;
+      margin: auto;
+      padding: 24px;
+    }
+    h1 { margin-bottom: 4px; }
+    p { color: #b9c6d8; }
+    .panel {
+      background: #1c293d;
+      padding: 18px;
+      border-radius: 14px;
+      margin: 18px 0;
+    }
+    video, canvas {
+      width: 100%;
+      border-radius: 10px;
+      background: #070c14;
+    }
+    button {
+      background: #4f8cff;
+      color: white;
+      border: 0;
+      border-radius: 9px;
+      padding: 12px 16px;
+      margin: 5px 4px 5px 0;
+      cursor: pointer;
+    }
+    button:disabled { opacity: .45; }
+    textarea {
+      width: 100%;
+      min-height: 100px;
+      background: #101827;
+      color: white;
+      padding: 12px;
+      border: 1px solid #52627a;
+      border-radius: 9px;
+      resize: vertical;
+    }
+    #status { color: #b7d2ff; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>📚 Asistente de Estudio</h1>
+  <p>Versión 1 · Cámara y voz</p>
+
+  <section class="panel">
+    <h2>📷 Cámara</h2>
+    <video id="video" autoplay playsinline muted></video>
+    <button id="start">Activar cámara</button>
+    <button id="stop" disabled>Detener cámara</button>
+    <button id="capture" disabled>Capturar apuntes</button>
+    <p id="status">Cámara desactivada.</p>
+  </section>
+
+  <section class="panel">
+    <h2>📝 Captura</h2>
+    <canvas id="canvas"></canvas>
+    <p>La lectura automática llegará en otra fase.</p>
+  </section>
+
+  <section class="panel">
+    <h2>🔊 Voz</h2>
+    <textarea id="speechText"
+      placeholder="Escribe una explicación para escucharla"></textarea>
+    <button id="speak">Reproducir voz</button>
+    <button id="silence">Detener voz</button>
+  </section>
+</main>
+
+<script>
+  const video = document.getElementById("video");
+  const canvas = document.getElementById("canvas");
+  const status = document.getElementById("status");
+  const start = document.getElementById("start");
+  const stop = document.getElementById("stop");
+  const capture = document.getElementById("capture");
+
+  let stream = null;
+
+  start.onclick = async () => {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: false
+      });
+
+      video.srcObject = stream;
+      status.textContent = "Cámara conectada.";
+      start.disabled = true;
+      stop.disabled = false;
+      capture.disabled = false;
+    } catch (error) {
+      status.textContent =
+        "Error de cámara: " + error.message;
+    }
+  };
+
+  stop.onclick = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      stream = null;
+    }
+
+    video.srcObject = null;
+    status.textContent = "Cámara desactivada.";
+    start.disabled = false;
+    stop.disabled = true;
+    capture.disabled = true;
+  };
+
+  capture.onclick = () => {
+    if (!video.videoWidth) return;
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    canvas.getContext("2d").drawImage(
+      video, 0, 0, canvas.width, canvas.height
+    );
+
+    status.textContent = "Captura realizada.";
+  };
+
+  document.getElementById("speak").onclick = () => {
+    const text = document.getElementById("speechText").value;
+    if (!text.trim()) return;
+
+    speechSynthesis.cancel();
+
+    const message = new SpeechSynthesisUtterance(text);
+    message.lang = "es-ES";
+    message.rate = 1;
+
+    speechSynthesis.speak(message);
+  };
+
+  document.getElementById("silence").onclick = () => {
+    speechSynthesis.cancel();
+  };
+</script>
+</body>
+</html>
